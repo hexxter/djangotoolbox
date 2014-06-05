@@ -1,3 +1,4 @@
+import collections
 def make_tls_property(default=None):
     """
     Creates a class-wide instance property with a thread-specific
@@ -37,7 +38,7 @@ def getattr_by_path(obj, attr, *default):
         if not hasattr(value, part) and len(default):
             return default[0]
         value = getattr(value, part)
-        if callable(value):
+        if isinstance(value, collections.Callable):
             value = value()
     return value
 

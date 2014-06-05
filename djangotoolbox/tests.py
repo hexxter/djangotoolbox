@@ -1,4 +1,4 @@
-from __future__ import with_statement
+
 from decimal import Decimal, InvalidOperation
 import time
 
@@ -95,11 +95,11 @@ class EmbeddedModel(models.Model):
 
 class IterableFieldsTest(TestCase):
     floats = [5.3, 2.6, 9.1, 1.58]
-    names = [u'Kakashi', u'Naruto', u'Sasuke', u'Sakura']
+    names = ['Kakashi', 'Naruto', 'Sasuke', 'Sakura']
     unordered_ints = [4, 2, 6, 1]
 
     def setUp(self):
-        for i, float in zip(range(1, 5), IterableFieldsTest.floats):
+        for i, float in zip(list(range(1, 5)), IterableFieldsTest.floats):
             ListModel(integer=i, floating_point=float,
                       names=IterableFieldsTest.names[:i]).save()
 
@@ -145,45 +145,45 @@ class IterableFieldsTest(TestCase):
         self.assertEquals(
             dict([(entity.pk, entity.names) for entity in
                   ListModel.objects.filter(names__gt='Kakashi')]),
-            dict([(2, [u'Kakashi', u'Naruto']),
-                  (3, [u'Kakashi', u'Naruto', u'Sasuke']),
-                  (4, [u'Kakashi', u'Naruto', u'Sasuke', u'Sakura']), ]))
+            dict([(2, ['Kakashi', 'Naruto']),
+                  (3, ['Kakashi', 'Naruto', 'Sasuke']),
+                  (4, ['Kakashi', 'Naruto', 'Sasuke', 'Sakura']), ]))
 
     def test_lt(self):
         self.assertEquals(
             dict([(entity.pk, entity.names) for entity in
                   ListModel.objects.filter(names__lt='Naruto')]),
-            dict([(1, [u'Kakashi']),
-                  (2, [u'Kakashi', u'Naruto']),
-                  (3, [u'Kakashi', u'Naruto', u'Sasuke']),
-                  (4, [u'Kakashi', u'Naruto', u'Sasuke', u'Sakura']), ]))
+            dict([(1, ['Kakashi']),
+                  (2, ['Kakashi', 'Naruto']),
+                  (3, ['Kakashi', 'Naruto', 'Sasuke']),
+                  (4, ['Kakashi', 'Naruto', 'Sasuke', 'Sakura']), ]))
 
     def test_gte(self):
         self.assertEquals(
             dict([(entity.pk, entity.names) for entity in
                   ListModel.objects.filter(names__gte='Sakura')]),
-            dict([(3, [u'Kakashi', u'Naruto', u'Sasuke']),
-                  (4, [u'Kakashi', u'Naruto', u'Sasuke', u'Sakura']), ]))
+            dict([(3, ['Kakashi', 'Naruto', 'Sasuke']),
+                  (4, ['Kakashi', 'Naruto', 'Sasuke', 'Sakura']), ]))
 
     def test_lte(self):
         self.assertEquals(
             dict([(entity.pk, entity.names) for entity in
                   ListModel.objects.filter(names__lte='Kakashi')]),
-            dict([(1, [u'Kakashi']),
-                  (2, [u'Kakashi', u'Naruto']),
-                  (3, [u'Kakashi', u'Naruto', u'Sasuke']),
-                  (4, [u'Kakashi', u'Naruto', u'Sasuke', u'Sakura']), ]))
+            dict([(1, ['Kakashi']),
+                  (2, ['Kakashi', 'Naruto']),
+                  (3, ['Kakashi', 'Naruto', 'Sasuke']),
+                  (4, ['Kakashi', 'Naruto', 'Sasuke', 'Sakura']), ]))
 
     def test_equals(self):
         self.assertEquals([entity.names for entity in
                            ListModel.objects.filter(names='Sakura')],
-                          [[u'Kakashi', u'Naruto', u'Sasuke', u'Sakura']])
+                          [['Kakashi', 'Naruto', 'Sasuke', 'Sakura']])
 
         # Test with additonal pk filter (for DBs that have special pk
         # queries).
         query = ListModel.objects.filter(names='Sakura')
         self.assertEquals(query.get(pk=query[0].pk).names,
-                          [u'Kakashi', u'Naruto', u'Sasuke', u'Sakura'])
+                          ['Kakashi', 'Naruto', 'Sasuke', 'Sakura'])
 
     def test_is_null(self):
         self.assertEquals(ListModel.objects.filter(
@@ -193,8 +193,8 @@ class IterableFieldsTest(TestCase):
         self.assertEquals(
             dict([(entity.pk, entity.names) for entity in
                   ListModel.objects.all().exclude(names__lt='Sakura')]),
-            dict([(3, [u'Kakashi', u'Naruto', u'Sasuke']),
-                  (4, [u'Kakashi', u'Naruto', u'Sasuke', u'Sakura']), ]))
+            dict([(3, ['Kakashi', 'Naruto', 'Sasuke']),
+                  (4, ['Kakashi', 'Naruto', 'Sasuke', 'Sakura']), ]))
 
     def test_chained_filter(self):
         self.assertEquals(
@@ -217,7 +217,7 @@ class IterableFieldsTest(TestCase):
     def test_setfield(self):
         setdata = [1, 2, 3, 2, 1]
         # At the same time test value conversion.
-        SetModel(setfield=map(str, setdata)).save()
+        SetModel(setfield=list(map(str, setdata))).save()
         item = SetModel.objects.filter(setfield=3)[0]
         self.assertEqual(item.setfield, set(setdata))
         # This shouldn't raise an error because the default value is
@@ -228,7 +228,7 @@ class IterableFieldsTest(TestCase):
         DictModel(dictfield=dict(a=1, b='55', foo=3.14),
                   auto_now={'a': None}).save()
         item = DictModel.objects.get()
-        self.assertEqual(item.dictfield, {u'a': 1, u'b': 55, u'foo': 3})
+        self.assertEqual(item.dictfield, {'a': 1, 'b': 55, 'foo': 3})
 
         dt = item.auto_now['a']
         self.assertNotEqual(dt, None)
@@ -392,29 +392,29 @@ class EmbeddedModelFieldTest(TestCase):
 
     def test_typed_listfield(self):
         EmbeddedModelFieldModel.objects.create(
-            typed_list=[SetModel(setfield=range(3)),
-                        SetModel(setfield=range(9))],
-            ordered_list=[Target(index=i) for i in xrange(5, 0, -1)])
+            typed_list=[SetModel(setfield=list(range(3))),
+                        SetModel(setfield=list(range(9)))],
+            ordered_list=[Target(index=i) for i in range(5, 0, -1)])
         obj = EmbeddedModelFieldModel.objects.get()
         self.assertIn(5, obj.typed_list[1].setfield)
         self.assertEqual([target.index for target in obj.ordered_list],
-                         range(1, 6))
+                         list(range(1, 6)))
 
     def test_untyped_listfield(self):
         EmbeddedModelFieldModel.objects.create(untyped_list=[
             EmbeddedModel(someint=7),
-            OrderedListModel(ordered_ints=range(5, 0, -1)),
+            OrderedListModel(ordered_ints=list(range(5, 0, -1))),
             SetModel(setfield=[1, 2, 2, 3])])
         instances = EmbeddedModelFieldModel.objects.get().untyped_list
         for instance, cls in zip(instances,
                                  [EmbeddedModel, OrderedListModel, SetModel]):
             self.assertIsInstance(instance, cls)
         self.assertNotEqual(instances[0].auto_now, None)
-        self.assertEqual(instances[1].ordered_ints, range(1, 6))
+        self.assertEqual(instances[1].ordered_ints, list(range(1, 6)))
 
     def test_untyped_dict(self):
         EmbeddedModelFieldModel.objects.create(untyped_dict={
-            'a': SetModel(setfield=range(3)),
+            'a': SetModel(setfield=list(range(3))),
             'b': DictModel(dictfield={'a': 1, 'b': 2}),
             'c': DictModel(dictfield={}, auto_now={'y': 1})})
         data = EmbeddedModelFieldModel.objects.get().untyped_dict

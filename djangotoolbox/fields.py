@@ -6,6 +6,7 @@ from django.db import models
 from django.db.models.fields.subclassing import Creator
 from django.db.utils import IntegrityError
 from django.db.models.fields.related import add_lazy_relation
+import collections
 
 
 __all__ = ('RawField', 'ListField', 'SetField', 'DictField',
@@ -58,7 +59,7 @@ class AbstractIterableField(models.Field):
 
         # Ensure a new object is created every time the default is
         # accessed.
-        if default is not None and not callable(default):
+        if default is not None and not isinstance(default, collections.Callable):
             kwargs['default'] = lambda: self._type(default)
 
         super(AbstractIterableField, self).__init__(*args, **kwargs)
@@ -66,7 +67,7 @@ class AbstractIterableField(models.Field):
         # Either use the provided item_field or a RawField.
         if item_field is None:
             item_field = RawField()
-        elif callable(item_field):
+        elif isinstance(item_field, collections.Callable):
             item_field = item_field()
         self.item_field = item_field
 
@@ -85,7 +86,7 @@ class AbstractIterableField(models.Field):
         if item_metaclass and issubclass(item_metaclass, models.SubfieldBase):
             setattr(cls, self.name, Creator(self))
 
-        if isinstance(self.item_field, models.ForeignKey) and isinstance(self.item_field.rel.to, basestring):
+        if isinstance(self.item_field, models.ForeignKey) and isinstance(self.item_field.rel.to, str):
             """
             If rel.to is a string because the actual class is not yet defined, look up the
             actual class later.  Refer to django.models.fields.related.RelatedField.contribute_to_class.
@@ -176,7 +177,7 @@ class ListField(AbstractIterableField):
 
     def __init__(self, *args, **kwargs):
         self.ordering = kwargs.pop('ordering', None)
-        if self.ordering is not None and not callable(self.ordering):
+        if self.ordering is not None and not isinstance(self.ordering, collections.Callable):
             raise TypeError("'ordering' has to be a callable or None, "
                             "not of type %r." % type(self.ordering))
         super(ListField, self).__init__(*args, **kwargs)
@@ -225,7 +226,7 @@ class DictField(AbstractIterableField):
 
     def _map(self, function, iterable, *args, **kwargs):
         return self._type((key, function(value, *args, **kwargs))
-                          for key, value in iterable.iteritems())
+                          for key, value in iterable.items())
 
     def validate(self, values, model_instance):
         if not isinstance(values, dict):
@@ -233,7 +234,7 @@ class DictField(AbstractIterableField):
                                   type(values))
 
 
-class EmbeddedModelField(models.Field):
+class EmbeddedModelField(models.Field, metaclass=models.SubfieldBase):
     """
     Field that allows you to embed a model instance.
 
@@ -245,7 +246,6 @@ class EmbeddedModelField(models.Field):
           the embedded instance (not just pre_save, get_db_prep_* and
           to_python).
     """
-    __metaclass__ = models.SubfieldBase
 
     def __init__(self, embedded_model=None, *args, **kwargs):
         self.embedded_model = embedded_model
@@ -271,7 +271,7 @@ class EmbeddedModelField(models.Field):
         our "model" attribute in its contribute_to_class method).
         """
         self._model = model
-        if model is not None and isinstance(self.embedded_model, basestring):
+        if model is not None and isinstance(self.embedded_model, str):
 
             def _resolve_lookup(self_, resolved_model, model):
                 self.embedded_model = resolved_model
